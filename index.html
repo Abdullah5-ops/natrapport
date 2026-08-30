@@ -6,7 +6,8 @@
 <meta name="theme-color" content="#06264a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <link rel="manifest" href="manifest.json">
-<title>Natrapport V4</title>
+<title>Natrapport</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <style>
 :root{--navy:#06264a;--blue:#1473e6;--green:#22a957;--bg:#f3f5f7;--ink:#102033;--muted:#6b7787;--line:#dce2e8}
 *{box-sizing:border-box}body{margin:0;background:#dce2e8;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","Segoe UI",sans-serif}.app{max-width:440px;min-height:100vh;margin:auto;background:var(--bg)}
@@ -14,84 +15,117 @@ header{background:var(--navy);color:#fff;padding:18px 17px 20px;border-radius:0 
 main{padding:15px 14px 95px}h2{margin:5px 2px 14px;font-size:22px}.card{background:#fff;border-radius:17px;padding:15px;margin:0 0 11px;box-shadow:0 2px 9px #0000000b}.choice{display:flex;align-items:center;gap:12px;cursor:pointer}.ico{width:45px;height:45px;border-radius:13px;display:grid;place-items:center;font-size:22px}.g{background:#e9f8ee}.b{background:#eaf2ff}.p{background:#f0eaff}.r{background:#ffeaea}.o{background:#fff0d8}.x{background:#edf0f3}.chev{margin-left:auto;color:#9ba5b0;font-size:25px}
 button{border:0;border-radius:12px;padding:13px 15px;width:100%;font-size:15px;font-weight:750;margin-top:9px}.primary{background:var(--green);color:#fff}.blue{background:var(--blue);color:#fff}.white{background:#fff;border:1px solid var(--line)}.danger{background:#fff0ef;color:#c92c22}.back{width:auto;background:transparent;color:#fff;padding:0;margin:0 0 8px;text-align:left}
 label{font-size:13px;font-weight:700;display:block;margin-top:11px}input,textarea{font:inherit;width:100%;border:1px solid var(--line);border-radius:11px;padding:12px;margin-top:6px}textarea{min-height:78px}
-input[type=file]{display:none}.camera{border:2px dashed #c6ced8;border-radius:14px;padding:18px;text-align:center;margin-top:10px}.camicon{font-size:35px}.camera b{display:block;margin:5px 0}.camera label{display:block;background:var(--blue);color:#fff;text-align:center;padding:13px;border-radius:11px}
+input[type=file]{display:none}.camera{border:2px dashed #c6ced8;border-radius:14px;padding:18px;text-align:center;margin-top:10px}.camicon{font-size:35px}.camera b{display:block;margin:5px 0}.camera label,.take{display:block;background:var(--blue);color:#fff;text-align:center;padding:13px;border-radius:11px}
 .preview{width:100%;height:190px;object-fit:cover;border-radius:12px;margin-top:10px;background:#e7ebef}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}.thumb{position:relative}.thumb img{width:100%;height:115px;object-fit:cover;border-radius:10px}.remove{position:absolute;right:5px;top:5px;width:28px;height:28px;padding:0;margin:0;border-radius:50%;background:#fff;color:#222}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:9px}.stat{background:#fff;padding:13px;border-radius:14px}.num{font-size:24px;font-weight:800}.muted{color:var(--muted);font-size:12px}.pill{display:inline-block;background:#e9f8ee;color:#168b43;border-radius:20px;padding:5px 9px;font-size:12px;font-weight:750}.item{border-left:4px solid var(--green)}pre{white-space:pre-wrap;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
 nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:440px;height:67px;background:#fff;border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:center}nav button{width:auto;background:none;color:#687586;padding:3px 12px;margin:0;font-size:11px}nav b{display:block;font-size:21px;color:var(--blue);margin-bottom:2px}
-.notice{background:#fff8df;border:1px solid #f1df9b;border-radius:12px;padding:12px;font-size:13px;line-height:1.45}
 </style>
 </head>
-<body><div class="app">
-<header><div id="back"></div><div class="brand">🌙 NATRAPPORT</div><div class="sub">Natlig registrering • klar til kundeservice</div></header>
-<main id="main"></main>
-<nav><button onclick="home()"><b>⌂</b>Hjem</button><button onclick="listReports()"><b>▣</b>Rapport</button><button onclick="mail()"><b>✉</b>Mail</button></nav>
-</div>
+<body><div class="app"><header><div id="back"></div><div class="brand">🌙 NATRAPPORT</div><div class="sub">Natlig registrering • klar til kundeservice</div></header><main id="main"></main>
+<nav><button onclick="home()"><b>⌂</b>Hjem</button><button onclick="listReports()"><b>▣</b>Rapport</button><button onclick="mail()"><b>✉</b>Mail</button></nav></div>
 <script>
 const M=document.getElementById('main'),B=document.getElementById('back');
 let db=JSON.parse(localStorage.getItem('natrapport_final')||'[]'),cur=null;
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function save(){localStorage.setItem('natrapport_final',JSON.stringify(db))}
 function back(){B.innerHTML='<button class="back" onclick="home()">‹ Tilbage</button>'}
-function home(){B.innerHTML='';M.innerHTML='<h2>Hvad skal registreres?</h2>'+
-choice('📦','Varer efterladt','Kundelabel + alle varebilleder','g',()=>newCase('Varer efterladt'))+
-choice('🔄','Flyttet stop','Stop flyttet','b',()=>simple('Flyttet stop'))+
-choice('🔇','Stille side','Ingen levering / stille side','p',()=>simple('Stille side'))+
-choice('❌','Kunde ikke leveret','Levering kunne ikke gennemføres','r',()=>simple('Kunde ikke leveret'))+
-choice('🕒','Forsinkelse','Forsinket levering','o',()=>simple('Forsinkelse'))+
-choice('•••','Andet','Andet forhold','x',()=>simple('Andet'))}
+function home(){B.innerHTML='';M.innerHTML='<h2>Hvad skal registreres?</h2>'+choice('📦','Varer efterladt','Kundelabel + alle varebilleder','g',()=>newCase('Varer efterladt'))+choice('🔄','Flyttet stop','Stop flyttet','b',()=>simple('Flyttet stop'))+choice('🔇','Stille side','Ingen levering / stille side','p',()=>simple('Stille side'))+choice('❌','Kunde ikke leveret','Levering kunne ikke gennemføres','r',()=>simple('Kunde ikke leveret'))+choice('🕒','Forsinkelse','Forsinket levering','o',()=>simple('Forsinkelse'))+choice('•••','Andet','Andet forhold','x',()=>simple('Andet'))}
 function choice(i,t,d,c,fn){return `<div class="card choice" onclick="(${fn})()"><div class="ico ${c}">${i}</div><div><b>${t}</b><div class="muted">${d}</div></div><div class="chev">›</div></div>`}
 function newCase(type){back();cur={type,customer:'',name:'',label:null,photos:[],note:''};labelStep()}
-function labelStep(){M.innerHTML=`<h2>📦 ${esc(cur.type)}</h2><div class="card"><span class="pill">Trin 1 af 2</span><div class="camera"><div class="camicon">📷</div><b>Tag kundelabel</b><div class="muted">Billedet gemmes sammen med kunden.</div><label>Åbn kamera<input type="file" accept="image/*" capture="environment" onchange="setLabel(this)"></label></div>${cur.label?`<img class="preview" src="${cur.label}">`:''}<label>Kundenummer<input id="cust" value="${esc(cur.customer)}" placeholder="Fx 30172177"></label><label>Kundenavn<input id="name" value="${esc(cur.name)}" placeholder="Fx Cafe-Zelo ApS"></label><button class="primary" onclick="toPhotos()">→ Videre til varer</button></div>`}
-function setLabel(i){if(!i.files[0])return;let r=new FileReader();r.onload=()=>{cur.label=r.result;labelStep()};r.readAsDataURL(i.files[0])}
+function labelStep(){M.innerHTML=`<h2>📦 ${esc(cur.type)}</h2><div class="card"><span class="pill">Trin 1 af 2</span><div class="camera"><div class="camicon">📷</div><b>Tag kundelabel</b><div class="muted">Kundenummer og kundenavn forsøges fundet automatisk på billedet.</div><label>📷 Tag kundelabel<input type="file" accept="image/*" capture="environment" onchange="setLabel(this)"></label></div>${cur.label?`<img class="preview" src="${cur.label}">`:''}<div id="ocrstatus" class="muted" style="margin-top:8px">${cur.ocrRunning?'🔎 Læser kundelabel…':''}</div><label>Kundenummer<input id="cust" value="${esc(cur.customer)}" placeholder="Fx 30172177"></label><label>Kundenavn<input id="name" value="${esc(cur.name)}" placeholder="Fx Cafe-Zelo ApS"></label><div class="muted" style="margin-top:7px">Kontrollér altid oplysningerne før du fortsætter.</div><button class="primary" onclick="toPhotos()">→ Videre til varer</button></div>`}
+async function setLabel(i){if(!i.files[0])return;let file=i.files[0];let r=new FileReader();r.onload=async()=>{cur.label=r.result;cur.ocrRunning=true;labelStep();try{if(!window.Tesseract)throw new Error('OCR library missing');const result=await Tesseract.recognize(file,'dan+eng',{logger:m=>{const el=document.getElementById('ocrstatus');if(el&&m.status)el.textContent='🔎 '+m.status+(m.progress?` ${Math.round(m.progress*100)}%`:'')}});const text=result.data.text||'';const parsed=parseCustomerOCR(text);if(parsed.customer&&!cur.customer)cur.customer=parsed.customer;if(parsed.name&&!cur.name)cur.name=parsed.name;cur.ocrText=text;cur.ocrRunning=false;labelStep()}catch(e){cur.ocrRunning=false;labelStep();const el=document.getElementById('ocrstatus');if(el)el.textContent='⚠️ Kunne ikke læse teksten automatisk – skriv kundenummer og navn manuelt.'}};r.readAsDataURL(file)}
+function parseCustomerOCR(text){let lines=text.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);let flat=text.replace(/\s+/g,' ');let nums=[...flat.matchAll(/\b\d{8}\b/g)].map(m=>m[0]);let customer=nums[0]||'';let bad=/^(kunde|kundenr|kundenummer|nr|cvr|telefon|tlf|adresse|postnr|ordrenr|levering|vare|dagrofa)$/i;let name='';for(let line of lines){let clean=line.replace(/[^\p{L}0-9 .&'’()_-]/gu,' ').replace(/\s+/g,' ').trim();if(!clean||bad.test(clean)||/^\d+$/.test(clean)||/\b\d{8}\b/.test(clean))continue;if(/[A-Za-zÆØÅæøå]/.test(clean)&&clean.length>=3&&clean.length<=60){name=clean;break}}return {customer,name}}
+
 function toPhotos(){cur.customer=document.getElementById('cust').value.trim();cur.name=document.getElementById('name').value.trim();if(!cur.customer){alert('Kundenummer mangler.');return}photosStep()}
-function photosStep(){M.innerHTML=`<h2>📸 Varebilleder</h2><div class="card"><b>${esc(cur.customer)}${cur.name?' – '+esc(cur.name):''}</b><div class="muted">Tag lige så mange billeder som nødvendigt.</div><label style="background:var(--blue);color:#fff;text-align:center;padding:13px;border-radius:11px;margin-top:12px">📷 Tag flere billeder<input type="file" accept="image/*" capture="environment" multiple onchange="addPhotos(this)"></label><div class="grid">${cur.photos.map((p,i)=>`<div class="thumb"><img src="${p}"><button class="remove" onclick="removePhoto(${i})">×</button></div>`).join('')}</div><label>Noter (valgfrit)<textarea id="note">${esc(cur.note)}</textarea></label><button class="primary" onclick="finish()">✓ Gem kunde</button></div>`}
-function addPhotos(i){[...i.files].forEach(f=>{let r=new FileReader();r.onload=()=>{cur.photos.push(r.result);photosStep()};r.readAsDataURL(f)});i.value=''}
+function photosStep(){M.innerHTML=`<h2>📸 Varebilleder</h2><div class="card"><b>${esc(cur.customer)}${cur.name?' – '+esc(cur.name):''}</b><div class="muted">Tag lige så mange billeder som nødvendigt.</div><label class="take">📷 Tag flere billeder<input type="file" accept="image/*" capture="environment" multiple onchange="addPhotos(this)"></label><div class="grid">${cur.photos.map((p,i)=>`<div class="thumb"><img src="${p}"><button class="remove" onclick="removePhoto(${i})">×</button></div>`).join('')}</div><div class="muted" style="margin-top:8px">${cur.photos.length} billede(r) valgt</div><label>Noter (valgfrit)<textarea id="note">${esc(cur.note)}</textarea></label><button class="primary" onclick="finish()">✓ Gem kunde</button></div>`}
+function resizeImage(file,max=1400,quality=.82){return new Promise((resolve,reject)=>{let fr=new FileReader();fr.onload=()=>{let img=new Image();img.onload=()=>{let scale=Math.min(1,max/Math.max(img.width,img.height)),w=Math.round(img.width*scale),h=Math.round(img.height*scale),c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);resolve(c.toDataURL('image/jpeg',quality))};img.onerror=reject;img.src=fr.result};fr.onerror=reject;fr.readAsDataURL(file)})}
+async function addPhotos(i){let files=[...i.files];i.value='';if(!files.length)return;try{for(const f of files){cur.photos.push(await resizeImage(f));photosStep()}}catch(e){alert('Billedet kunne ikke gemmes. Prøv igen.');photosStep()}}
 function removePhoto(i){cur.photos.splice(i,1);photosStep()}
-function finish(){cur.note=document.getElementById('note').value;db.push({...cur});save();cur=null;listReports()}
+function finish(){cur.note=document.getElementById('note').value;try{db.push({...cur});save();cur=null;listReports()}catch(e){alert('Billederne fylder for meget. Tag færre billeder eller mindre billeder.');db.pop()}}
 function simple(type){back();M.innerHTML=`<h2>${esc(type)}</h2><div class="card"><label>Kundenummer<input id="sc" placeholder="Kundenummer"></label><label>Kundenavn<input id="sn" placeholder="Kundenavn"></label><label>Beskrivelse<textarea id="sd" placeholder="Kort beskrivelse"></textarea></label><button class="primary" onclick="saveSimple('${type}')">✓ Gem kunde</button></div>`}
 function saveSimple(type){db.push({type,customer:document.getElementById('sc').value||'—',name:document.getElementById('sn').value||'—',note:document.getElementById('sd').value||'',label:null,photos:[]});save();listReports()}
 function listReports(){back();let pics=db.reduce((n,r)=>n+(r.photos?.length||0),0);M.innerHTML=`<h2>📊 Nattens rapport</h2><div class="stats"><div class="stat"><div class="num">${db.length}</div><div class="muted">kunder</div></div><div class="stat"><div class="num">${pics}</div><div class="muted">billeder</div></div></div>${db.map((r,i)=>`<div class="card item"><b>${esc(r.customer)} – ${esc(r.name)}</b><div class="muted">${esc(r.type)} • ${r.photos?.length||0} billeder</div>${r.note?`<div style="margin-top:7px">${esc(r.note)}</div>`:''}<button class="danger" onclick="del(${i})">Slet</button></div>`).join('')}<button class="primary" onclick="newCase('Varer efterladt')">＋ Tilføj næste kunde</button><button class="blue" onclick="mail()">✉ Gå til mail</button>`}
 function del(i){if(confirm('Slet denne registrering?')){db.splice(i,1);save();listReports()}}
-function body(){
-return `Hej Kundeservice,\n\nSe venligst natrapporten fra i nat.\n\n${db.map(r=>`• ${r.type}: ${r.customer} – ${r.name}${r.photos?.length?` (${r.photos.length} billeder)`:''}${r.note?` – ${r.note}`:''}`).join('\n')}\n\nMed venlig hilsen\nAbdullah\nDistribution Øst`;
+function body(){return `Hej Kundeservice,\n\nSe venligst natrapporten fra i nat.\n\n${db.map(r=>`• ${r.type}: ${r.customer} – ${r.name}${r.photos?.length?` (${r.photos.length} billeder)`:''}${r.note?` – ${r.note}`:''}`).join('\n')}\n\nMed venlig hilsen\nAbdullah\nDistribution Øst`}
+async function mail(){
+  back();
+  const totalPics=db.reduce((n,r)=>n+(r.photos?.length||0),0);
+  M.innerHTML=`<h2>✉ Mail klar</h2>
+  <div class="card">
+    <span class="pill">Klar til afsendelse</span>
+    <h3 style="margin:10px 0 5px">Natrapport – Diverse hændelser</h3>
+    <div class="muted">${db.length} kunder • ${totalPics} billeder</div>
+    <p style="margin-top:12px">For at gøre det nemt for kundeservice er hver kunde nu adskilt. Du sender én kunde ad gangen med kun den kundes tekst og billeder.</p>
+  </div>
+  <button class="blue" onclick="shareCustomersOneByOne()">📤 Send kunder én ad gangen</button>
+  <div id="customerMailList"></div>
+  <button class="white" onclick="mailto()">Åbn Mail uden billeder</button>
+  <button class="white" onclick="copy()">Kopiér samlet tekst</button>`;
+  renderCustomerMailList();
 }
-function mail(){
-back();let b=body();
-M.innerHTML=`<h2>✉ Mail klar</h2><div class="card"><b>Emne</b><p>Natrapport – Diverse hændelser</p><b>Indhold</b><pre>${esc(b)}</pre></div>
-<button class="blue" onclick="shareMail()">📤 Del mail + billeder</button>
-<button class="white" onclick="sharePictures()">📷 Del kun billeder</button>
-<button class="white" onclick="mailto()">Åbn Mail uden billeder</button>
-<button class="white" onclick="copy()">Kopiér tekst</button>
-<div class="notice"><b>Vigtigt:</b> På iPhone afhænger vedhæftning af billeder af den mail-app, du vælger i Del-menuen. V4 sender billederne som rigtige filer via iOS Share Sheet, når appen understøtter det. Mailteksten bruger nu rigtige linjeskift.</div>`;
+function customerBody(r){
+  return `Hej Kundeservice,
+
+Se venligst natrapporten fra i nat.
+
+• ${r.type}: ${r.customer} – ${r.name}${r.note?` – ${r.note}`:''}
+
+${r.photos?.length?`Der er vedhæftet ${r.photos.length} billede(r) fra denne kunde.`:''}
+
+Med venlig hilsen
+Abdullah
+Distribution Øst`;
 }
-function allFiles(){
-let files=[];
-for(const r of db){for(let i=0;i<(r.photos||[]).length;i++){
-let blob=dataURLtoBlob(r.photos[i]);
-files.push(new File([blob],`${r.customer}_${i+1}.jpg`,{type:blob.type||'image/jpeg'}));
-}}
-return files;
+function renderCustomerMailList(){
+  const el=document.getElementById('customerMailList');
+  if(!el)return;
+  el.innerHTML=db.map((r,i)=>`<div class="card item">
+    <b>${esc(r.customer)} – ${esc(r.name)}</b>
+    <div class="muted">${esc(r.type)} • ${r.photos?.length||0} billeder</div>
+    ${r.note?`<div style="margin-top:7px">${esc(r.note)}</div>`:''}
+    <button class="blue" onclick="shareOneCustomer(${i})">📤 Send denne kunde</button>
+  </div>`).join('');
 }
-async function shareMail(){
-const files=allFiles();
-if(!files.length){alert('Der er ingen billeder i rapporten.');return mailto();}
-if(navigator.canShare&&navigator.canShare({files})){
-try{await navigator.share({title:'Natrapport – Diverse hændelser',text:body(),files});return;}catch(e){if(e.name==='AbortError')return;}
+async function shareOneCustomer(i){
+  const r=db[i];
+  if(!r)return;
+  const files=(r.photos||[]).map((p,n)=>{
+    const blob=dataURLtoBlob(p);
+    return new File([blob],`${safeFile(r.customer)}_${n+1}.jpg`,{type:'image/jpeg'});
+  });
+  const title=`Natrapport – ${r.customer} – ${r.name}`;
+  const data={title,text:customerBody(r),files};
+  if(files.length && navigator.canShare?.({files}) && navigator.share){
+    try{await navigator.share(data);return}catch(e){}
+  }
+  if(navigator.share){
+    try{await navigator.share({title,text:customerBody(r)});return}catch(e){}
+  }
+  alert('Denne browser kan ikke sende billeder direkte. Åbn siden i Safari på iPhone og prøv igen.');
 }
-alert('Denne browser/mail-app kan ikke sende filer direkte. Brug "Del kun billeder" og indsæt derefter den kopierede tekst i mailen.');
+async function shareCustomersOneByOne(){
+  if(!db.length){alert('Der er ingen kunder i rapporten.');return;}
+  for(let i=0;i<db.length;i++){
+    const r=db[i];
+    const answer=confirm(`Kunde ${i+1} af ${db.length}\n\n${r.customer} – ${r.name}\n${r.photos?.length||0} billeder\n\nTryk OK for at åbne deling for denne kunde.`);
+    if(!answer)break;
+    await shareOneCustomer(i);
+    if(i<db.length-1){
+      const next=confirm('Kunden er behandlet.\n\nVil du fortsætte til næste kunde?');
+      if(!next)break;
+    }
+  }
 }
-async function sharePictures(){
-const files=allFiles();
-if(!files.length){alert('Der er ingen billeder i rapporten.');return;}
-if(navigator.canShare&&navigator.canShare({files})){
-try{await navigator.share({title:'Natrapport – Billeder',files});return;}catch(e){if(e.name==='AbortError')return;}
+function safeFile(s){
+  return String(s||'kunde').replace(/[^a-z0-9æøåÆØÅ _-]/gi,'').trim().replace(/\s+/g,'_')||'kunde';
 }
-alert('Din iPhone/mail-app understøtter ikke deling af disse filer fra browseren.');
-}
+
+function allPhotoFiles(){let files=[];for(const r of db){for(let i=0;i<(r.photos||[]).length;i++){let blob=dataURLtoBlob(r.photos[i]);files.push(new File([blob],`${r.customer}_${i+1}.jpg`,{type:'image/jpeg'}))}}return files}
+async function shareMail(){let files=allPhotoFiles();if(!files.length){alert('Der er ingen billeder i rapporten.');return}let data={title:'Natrapport – Diverse hændelser',text:body(),files};if(navigator.canShare?.({files})&&navigator.share){try{await navigator.share(data);return}catch(e){}}if(navigator.share){try{await navigator.share({title:data.title,text:data.text});return}catch(e){}}alert('Din iPhone kan ikke dele billeder fra denne browser. Prøv Safari og tryk på Del igen.')}
+async function sharePhotos(){let files=allPhotoFiles();if(!files.length){alert('Der er ingen billeder i rapporten.');return}if(navigator.canShare?.({files})&&navigator.share){try{await navigator.share({title:'Natrapport – billeder',text:body(),files});return}catch(e){}}alert('Billeddeling er ikke understøttet her. Prøv Safari.')}
 function mailto(){location.href='mailto:?subject='+encodeURIComponent('Natrapport – Diverse hændelser')+'&body='+encodeURIComponent(body())}
-async function copy(){try{await navigator.clipboard.writeText(body());alert('Mailteksten er kopieret.')}catch(e){alert(body())}}
-function dataURLtoBlob(u){let [h,b]=u.split(',');let m=h.match(/data:(.*?);/)[1];let bin=atob(b),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new Blob([a],{type:m})}
+function copy(){navigator.clipboard?.writeText(body());alert('Mailteksten er kopieret.')}
+function dataURLtoBlob(u){let [h,b]=u.split(',');let m=(h.match(/data:(.*?);/)||[])[1]||'image/jpeg';let bin=atob(b),a=new Uint8Array(bin.length);for(let i=0;i<bin.length;i++)a[i]=bin.charCodeAt(i);return new Blob([a],{type:m})}
 if('serviceWorker' in navigator)navigator.serviceWorker.register('sw.js').catch(()=>{});
 home();
-</script>
-</body></html>
+</script></body></html>
