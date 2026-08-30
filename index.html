@@ -37,9 +37,9 @@ function home(){B.innerHTML='';M.innerHTML='<h2>Hvad skal registreres?</h2>'+cho
 function choice(i,t,d,c,fn){return `<div class="card choice" onclick="(${fn})()"><div class="ico ${c}">${i}</div><div><b>${t}</b><div class="muted">${d}</div></div><div class="chev">›</div></div>`}
 function newCase(type){back();cur={type,customer:'',name:'',label:null,photos:[],note:''};labelStep()}
 function labelStep(){M.innerHTML=`<h2>📦 ${esc(cur.type)}</h2><div class="card"><span class="pill">Trin 1 af 2</span><div class="camera"><div class="camicon">📷</div><b>Tag kundelabel</b><div class="muted">Kundenummer og kundenavn forsøges fundet automatisk på billedet.</div><label>📷 Tag kundelabel<input type="file" accept="image/*" capture="environment" onchange="setLabel(this)"></label></div>${cur.label?`<img class="preview" src="${cur.label}">`:''}<div id="ocrstatus" class="muted" style="margin-top:8px">${cur.ocrRunning?'🔎 Læser kundelabel…':''}</div><div class="card" style="margin-top:12px;background:#f7f9fb">
-<label>Kundenummer (automatisk)<input id="cust" value="${esc(cur.customer)}" readonly placeholder="Læser fra kundelabel…"></label>
+<label>Kundenummer<input id="cust" value="${esc(cur.customer)}" placeholder="Skriv kundenummer"></label>
 <label>Kundenavn (automatisk)<input id="name" value="${esc(cur.name)}" readonly placeholder="Læser fra kundelabel…"></label>
-<div class="muted" style="margin-top:7px">Kundenummer og kundenavn hentes automatisk fra kundelabelen. Du skal normalt ikke skrive noget selv.</div>
+<div class="muted" style="margin-top:7px">Kundenummer skrives manuelt. Kundenavn kan fortsat hentes automatisk fra kundelabelen.</div>
 </div>
 <button class="primary" onclick="toPhotos()">→ Videre til varer</button></div>`}
 async function setLabel(i){
@@ -58,7 +58,7 @@ async function setLabel(i){
       });
       const text=result.data.text||'';
       const parsed=parseCustomerOCR(text);
-      cur.customer=parsed.customer||'';
+      if(!cur.customer) cur.customer=parsed.customer||'';
       cur.name=parsed.name||'';
       cur.ocrText=text;
       cur.ocrRunning=false;
@@ -115,8 +115,8 @@ function parseCustomerOCR(text){
 function toPhotos(){
   cur.customer=(document.getElementById('cust')?.value||cur.customer||'').trim();
   cur.name=(document.getElementById('name')?.value||cur.name||'').trim();
-  if(!cur.customer || !cur.name){
-    alert('Jeg kunne ikke finde både kundenummer og kundenavn automatisk. Tag et nyt, tydeligt billede af kundelabelen.');
+  if(!cur.customer){
+    alert('Skriv kundenummeret, før du fortsætter.');
     return;
   }
   photosStep()

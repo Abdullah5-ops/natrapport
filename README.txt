@@ -1,4 +1,4 @@
-NATRAPPORT – VERSION 9
+NATRAPPORT – VERSION 10
 
 Rettet billedfejl: billeder gemmes nu i IndexedDB i stedet for localStorage, så flere billeder kan gemmes uden den tidligere fejl om at billederne fylder for meget.
 
